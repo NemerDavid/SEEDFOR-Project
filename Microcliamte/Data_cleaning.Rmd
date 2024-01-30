@@ -1,217 +1,114 @@
 ---
-title: "Data Analysis Report"
-output:
-  html_document:
-    toc: true
-    toc_float: true
+title: "Data_cleaning2"
+author: "David"
+date: "2024-01-24"
+output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
-```{r}
 
-library(myClim)
-library(stringr)
+```{r, include = FALSE}
+library(viridis)
+library(dplyr)
 library(ggplot2)
-```
-
-# Set Working Directory
-```{r set_working_directory, echo=TRUE}
-# Set working directory
-setwd("C:/Users/nemer/Project/Data analysis/SEEDFOR/Data/TOMST")
-owddraw <- "C:/Users/nemer/Project/Data analysis/SEEDFOR/Data/TOMST"
-```
-
-## List matching CSV files
-```{r}
-dataNames <- list.files(pattern = '^data.*\\.csv$', path = owddraw, full.names = FALSE, recursive = TRUE)
-print(dataNames)
-```
-
-## Organizing loggers in 3 categories (Open, Semi-closed, Closed)
-```{r}
-
-open_files <- dataNames[grepl("O", dataNames)]
-semi_closed_files <- dataNames[grepl("S", dataNames)]
-closed_files <- dataNames[grepl("C", dataNames)]
-
-print(open_files)
-print(semi_closed_files)
-print(closed_files)
-
-tms_open <- mc_read_files(open_files, dataformat_name = "TOMST", recursive = FALSE, silent = TRUE, clean = TRUE)
-tms_semi_closed <- mc_read_files(semi_closed_files, dataformat_name = "TOMST", recursive = FALSE, silent = TRUE, clean = TRUE)
-tms_closed <- mc_read_files(closed_files, dataformat_name = "TOMST", recursive = FALSE, silent = TRUE, clean = TRUE)
-
-#mc_info_clean(tms_open)
-#mc_info_clean(tms_semi_closed)
-#mc_info_clean(tms_closed)
+library(lme4)
+library(Matrix)
+library(afex)
+library(performance)
+library(see)
 ```
 
 
-# Graphical check of the data before cropping
-mc_plot_line(tms_open, sensors = c("TMS_T3","TMS_T2" ,"TMS_T1")) 
-mc_plot_line(tms_semi_closed, sensors = c("TMS_T3","TMS_T2" ,"TMS_T1"))
-mc_plot_line(tms_closed, sensors = c("TMS_T3","TMS_T2" ,"TMS_T1"))
+```{r, include = FALSE}
+###############################################
+###  load and extract the new cleaned rds files
+###############################################
+new_folder_path <- "C:/Users/David/Desktop/SeedFor/Data analysis/SEEDFOR/Data/TOMST_Cleaned1"
+#### 1-load ###
+# Get a list of all RDS files in the folder
+rds_files <- list.files(path = new_folder_path, pattern = "\\.rds$", full.names = TRUE)
 
-# After cropping
-cropped_data_open <- mc_prep_crop(tms_open, start=as.POSIXct("2022-11-1", tz="UTC"), end=as.POSIXct("2023-09-04", tz="UTC"))
-cropped_data_semi_closed <- mc_prep_crop(tms_semi_closed, start=as.POSIXct("2022-11-1", tz="UTC"), end=as.POSIXct("2023-09-04", tz="UTC"))
-cropped_data_closed <- mc_prep_crop(tms_closed, start=as.POSIXct("2022-11-1", tz="UTC"), end=as.POSIXct("2023-09-04", tz="UTC"))
+# Create an empty list to store loaded data frames
+loaded_data_frames <- list()
 
-# Open canopy
-mc_plot_line(cropped_data_open, sensors = c("TMS_T3","TMS_T2" ,"TMS_T1")) + ggtitle("Open canopy")
-# Semi_closed canopy
-mc_plot_line(cropped_data_semi_closed, sensors = c("TMS_T3","TMS_T2" ,"TMS_T1")) + ggtitle("Semi_closed canopy")
-# Closed canopy
-mc_plot_line(cropped_data_closed, sensors = c("TMS_T3","TMS_T2" ,"TMS_T1")) + ggtitle("Closed canopy")
-
-
-
-# Detection of out-of-soil measurements from TMS logger
-data_open <- mc_prep_TMSoffsoil(cropped_data_open)
-data_semi_closed <- mc_prep_TMSoffsoil(cropped_data_semi_closed)
-data_closed <- mc_prep_TMSoffsoil(cropped_data_closed)
-suppressWarnings({
-  data_semi_closed <- mc_prep_TMSoffsoil(cropped_data_semi_closed)
-})
-
-mc_plot_line(data_open, sensors = c("off_soil","TMS_T1", "TMS_T2","TMS_T3")) + ggtitle("Open canopy")
-mc_plot_line(data_semi_closed, sensors = c("off_soil","TMS_T1", "TMS_T2","TMS_T3")) + ggtitle("Semi_closed canopy")
-mc_plot_line(data_closed, sensors = c("off_soil","TMS_T1", "TMS_T2","TMS_T3")) + ggtitle("Closed canopy")
-```
-# Loggers identified as out of soil
-# Open: 94200377-Site6 ; 94242033-Site2 ; 94242039-Site3
-# Closed: 94242031-Site2 ; 94242043-Site4 ; 94242059-Site5
-# Semi: 94242034-Site2 ; 94242047-Site3 
-
-
-
-
-## Store the cleaned and cropped rds database files in a new folder
-```{r}
-## Specify the path for the new folder where you want to store the data frames
-new_folder_path <- "C:/Users/nemer/Project/Data analysis/SEEDFOR/Data/TOMST_Cleaned1"
-
-# Loop through each CSV file and process the TOMST logger data
-for (file_path in dataNames) {
-  
-  # Read data using mc_read_files
-  tms_data <- mc_read_files(file_path, dataformat_name = "TOMST", silent = TRUE)
-  
-  # Crop datetime for all files
-  cropped_data <- mc_prep_crop(tms_data, start = as.POSIXct("2022-11-1", tz = "UTC"), end = as.POSIXct("2023-09-04", tz = "UTC"))
-  
-  # Extract metadata and localities components
-  metadata_component <- cropped_data$localities[[1]]$metadata
-  loggers_component <- cropped_data$localities[[1]]$loggers[[1]]
-  
-  # Extract logger metadata
-  logger_metadata <- loggers_component$metadata
-  locality_id <- metadata_component@locality_id
-  
-  # Extract datetime and sensors data
-  datetime <- loggers_component$datetime
-  sensors <- loggers_component$sensors
-  
-  # Determine the canopy openness based on the directory part of the path
-  common_prefix <- dirname(file_path)
-  
-  # Extract the modality code from the common prefix
-  modality_code <- substr(common_prefix, nchar(common_prefix), nchar(common_prefix))
-  
-  # Map the modality code to its description
-  modality <- switch(modality_code, "C" = "Closed", "S" = "Semi-closed", "O" = "Open")
-  
-  # Extract the site code from the common prefix
-  site_code <- substr(common_prefix, 1, 1)
-  
-  # Map the site code to its description
-  site <- paste0("site ", site_code)
-  
-  # Create a data frame for the current TOMST logger
-  result_data <- data.frame(date = as.POSIXct(datetime),
-                            logger_id = locality_id,
-                            T1 = sensors$TMS_T1$values,
-                            T2 = sensors$TMS_T2$values,
-                            T3 = sensors$TMS_T3$values,
-                            soil_moisture = sensors$TMS_moist$values,
-                            Canopy_openness = rep(modality, length(datetime)),
-                            Site = rep(site, length(datetime))
-  )
-  
-  # Define the new file path in the new folder
-  new_file_path <- file.path(new_folder_path, paste0(tools::file_path_sans_ext(basename(file_path)), ".rds"))
-  
-  # Save the result_data to a new RDS file in the new folder
-  saveRDS(result_data, new_file_path)
+# Loop through each RDS file and load it into R
+for (rds_file in rds_files) {
+  loaded_data <- readRDS(rds_file)
+  loaded_data_frames[[basename(rds_file)]] <- loaded_data
 }
 
+#### 2-extract ###
+# Example: Extract the first loaded data frame from the list
+first_data_frame <- loaded_data_frames[[1]]
+head(first_data_frame)
+# Create an empty list to store loaded data frames
+loaded_data_frames <- list()
+
+# Loop through each RDS file and load it into R
+for (rds_file in rds_files) {
+  loaded_data <- readRDS(rds_file)
+  loaded_data_frames[[basename(rds_file)]] <- loaded_data
+}
+
+# Use list2env to create separate data frames in the R environment
+list2env(loaded_data_frames, envir = .GlobalEnv)
+
+
+#### 3-Combine all loaded data frames into one data frame ###
+
+combined_data <- do.call(rbind, loaded_data_frames)
+rownames(combined_data) <- NULL
+head(combined_data)
+
+
+
+summary(combined_data)
 ```
 
+# Filtered data from loggers that were out of soil and not working properly
+```{r, echo=FALSE}
 
-```{r}
-# Loop through each CSV file and process the TOMST logger data
-for (file_path in dataNames) {
-  
-  # Read data using mc_read_files
-  tms_data <- mc_read_files(file_path, dataformat_name = "TOMST", silent = TRUE)
-  
-  # Crop datetime for all files
-  cropped_data <- mc_prep_crop(tms_data, start = as.POSIXct("2022-11-1", tz = "UTC"), end = as.POSIXct("2023-09-04", tz = "UTC"))
-  
-  # Extract metadata and localities components
-  metadata_component <- cropped_data$localities[[1]]$metadata
-  loggers_component <- cropped_data$localities[[1]]$loggers[[1]]
-  
-  # Extract logger metadata
-  logger_metadata <- loggers_component$metadata
-  locality_id <- metadata_component@locality_id
-  
-  # Extract datetime and sensors data
-  datetime <- loggers_component$datetime
-  sensors <- loggers_component$sensors
-  
-  # Determine the canopy openness based on the directory part of the path
-  common_prefix <- dirname(file_path)
-  
-  # Extract the modality code from the common prefix
-  modality_code <- substr(common_prefix, nchar(common_prefix), nchar(common_prefix))
-  
-  # Map the modality code to its description
-  modality <- switch(modality_code, "C" = "Closed", "S" = "Semi-closed", "O" = "Open")
-  
-  # Extract the site code from the common prefix
-  site_code <- substr(common_prefix, 1, 1)
-  
-  # Map the site code to its description
-  site <- paste0("site ", site_code)
-  
-  # Create a data frame for the current TOMST logger
-  result_data <- data.frame(
-    date = as.POSIXct(datetime),
-    logger_id = locality_id,
-    T1 = sensors$TMS_T1$values,
-    T2 = sensors$TMS_T2$values,
-    T3 = sensors$TMS_T3$values,
-    soil_moisture = sensors$TMS_moist$values,
-    Canopy_openness = rep(modality, length(datetime)),
-    Site = rep(site, length(datetime))
+## The Logger 94200377 on Site 6-O is not working properly so we remove Site 6 from the data
+filtered_data <- combined_data %>%
+  filter(!(logger_id %in% c("94200377", "94242031", "94242033", "94242034", "94242039", "94242043", "94242047", "94242059")))
+
+
+
+# Convert date column to a datetime object
+filtered_data$date <- as.POSIXct(filtered_data$date, format="%Y-%m-%d %H:%M:%S")
+
+# Create a new column for the date without the time component
+filtered_data$day <- as.Date(filtered_data$date)
+head(filtered_data)
+```
+
+# Aggregating the data 
+## Aggregate the data to daily averages
+```{r, echo=FALSE}
+daily_averages <- filtered_data %>%
+  group_by(day, Canopy_openness, Site) %>%
+  summarize(
+    avg_T1 = mean(T1),
+    avg_T2 = mean(T2),
+    avg_T3 = mean(T3),
+    avg_soil_moisture = mean(soil_moisture)
+    # Add other derivative measures as needed
   )
-  
-  # Create a new folder based on the common prefix in the new directory
-  new_folder_path2 <- file.path("C:/Users/nemer/Project/Data analysis/SEEDFOR/Data/TOMST_Cleaned2", common_prefix)
-  
-  # Create the new folder if it doesn't exist
-  if (!dir.exists(new_folder_path2)) {
-    dir.create(new_folder_path2, recursive = TRUE)
-  }
-  
-  # Define the new file path in the new folder
-  new_file_path <- file.path(new_folder_path2, paste0(tools::file_path_sans_ext(basename(file_path)), ".rds"))
-  
-  # Save the result_data to a new RDS file in the new folder
-  saveRDS(result_data, new_file_path)
-}
+head(daily_averages)
+```
+
+## Group by day, Canopy_openness, and Site and calculate daily min and max temperatures
+```{r,echo=FALSE}
+daily_extremes <- filtered_data %>%
+  group_by(day, Canopy_openness, Site) %>%
+  summarize(
+    min_T1 = min(T1, na.rm = TRUE),  
+    max_T1 = max(T1, na.rm = TRUE),
+    min_T2 = min(T2, na.rm = TRUE),  
+    max_T2 = max(T2, na.rm = TRUE),
+    min_T3 = min(T3, na.rm = TRUE),  
+    max_T3 = max(T3, na.rm = TRUE)
+  )
+
+head(daily_extremes)
+```
