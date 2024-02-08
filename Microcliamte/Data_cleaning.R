@@ -6,9 +6,10 @@ library(ggplot2)
 setwd("C:/Users/nemer/Project/SEEDFOR/Field/terrain SEEDFOR/TOMST")#old
 owddraw ="C:/Users/nemer/Project/SEEDFOR/Field/terrain SEEDFOR/TOMST"#old
 
-setwd("C:/Users/nemer/Project/Data analysis/SEEDFOR/Data/TOMST")#New
-owddraw ="C:/Users/nemer/Project/Data analysis/SEEDFOR/Data/TOMST"#New
+setwd("C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST")#New
+owddraw ="C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST"#New
 
+new_folder_path <- "C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST_Cleaned1"
 
 dataNames <- list.files(pattern = '^data.*\\.csv$', path = owddraw, full.names = FALSE, recursive = TRUE)
 # Print the list of matching CSV files
@@ -16,15 +17,15 @@ print(dataNames)
 
 
 
+# Remove the logger 6/6-S/data_94242064_2023_09_07_0.csv as it has few measurements recorded and causing an error while loading
+# Remove the specified substring from each element in the list
+dataNames <- dataNames[dataNames != "6/6-S/data_94242060_2023_09_07_0.csv"]
 
 #########################################################################################
 ### Ensure that all data on each logger is clean (duplicates, start date, end date, etc.)
 #########################################################################################
 tms_data <- mc_read_files(dataNames,
                           dataformat_name = "TOMST", silent = T)
-
-
-str(tms_data)
 
 
 # clean runs automatically while reading
@@ -114,9 +115,9 @@ ggtitle("Closed canopy")
 
 
 
-####################################################################
-### Store the cleaned and cropped rds database files in a new folder
-####################################################################
+##############################################################
+### Store the cleaned and cropped rds datasets in a new folder
+##############################################################
 
 # Specify the path for the new folder where you want to store the data frames
 new_folder_path <- "C:/Users/nemer/Project/Data analysis/SEEDFOR/Data/TOMST_Cleaned1"
