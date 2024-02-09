@@ -143,11 +143,15 @@ canopy_order <- c("Open", "Semi-closed", "Closed")
 gathered_data %>%
   filter(season == 'winter') %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
-ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
-  theme_minimal()+
-  facet_wrap(~Site)
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot(position = "dodge") +  # Specify position to stack box plots
+  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal() +
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))  # Adjust margin for vertical spacing
+
+
 
 
 
@@ -157,7 +161,7 @@ gathered_data %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -168,7 +172,7 @@ gathered_data %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -178,7 +182,7 @@ gathered_data %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -186,7 +190,7 @@ gathered_data %>%
 
 ####### Daily average #######
 # Reshape data using gather function
-gathered_data2 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature", avg_T1, avg_T2, avg_T3)
+gathered_data2 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C", avg_T1, avg_T2, avg_T3)
 
 
 ## winter ##
@@ -198,7 +202,7 @@ gathered_data2 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -210,7 +214,7 @@ gathered_data2 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -221,7 +225,7 @@ gathered_data2 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -231,7 +235,7 @@ gathered_data2 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -239,7 +243,7 @@ gathered_data2 %>%
 
 ####### Daily extreme #######
 # Reshape data using gather function
-gathered_data3 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature", max_T1, max_T2, max_T3)
+gathered_data3 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C", max_T1, max_T2, max_T3)
 
 ## MAX temp ##
 
@@ -252,7 +256,7 @@ gathered_data3 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -264,7 +268,7 @@ gathered_data3 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -275,7 +279,7 @@ gathered_data3 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -285,13 +289,13 @@ gathered_data3 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
 
 # Reshape data using gather function
-gathered_data4 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature",min_T1, min_T2, min_T3)
+gathered_data4 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C",min_T1, min_T2, min_T3)
 
 ## Min temp ##
 
@@ -304,7 +308,7 @@ gathered_data4 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
   ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Site)
 
@@ -316,7 +320,7 @@ gathered_data4 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Site, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Canopy_openness)
 
@@ -327,7 +331,7 @@ gathered_data4 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Site, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Canopy_openness)
 
@@ -337,7 +341,7 @@ gathered_data4 %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
   ggplot( aes(x = Site, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature") +
+  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
   theme_minimal()+
   facet_wrap(~Canopy_openness)
 
@@ -423,12 +427,12 @@ summary(joined_data_filtered)
 
 ### visualize the data after removing the outliers
 # Reshape data using gather function
-gathered_data22 <- tidyr::gather(joined_data_filtered, key = "Temperature_Variable", value = "Temperature", T1, T2, T3)
+gathered_data22 <- tidyr::gather(joined_data_filtered, key = "Temperature_Variable", value = "Temperature °C", T1, T2, T3)
 
 # Create a boxplot with all temperature variables on the same plot
 ggplot(gathered_data22, aes(x = Temperature_Variable, y = Temperature, fill = Temperature_Variable)) +
                    geom_boxplot() +
-                   labs(title = "Boxplots for T1, T2, and T3", x = "Temperature Variables", y = "Temperature") +
+                   labs(title = "Boxplots for T1, T2, and T3", x = "Temperature Variables", y = "Temperature °C") +
                    theme_minimal()+
                    facet_wrap(~ season + Canopy_openness)
 
@@ -483,8 +487,20 @@ daynight_averages <- time_of_day %>%
   )
 head(daynight_averages)
 
+daynight_averages[,c(1,2,3,4,5,6,7,8,9)]
 
 
+gathered_data2 %>%
+  filter(season == 'fall') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable, color = time_of_day)) +
+  geom_boxplot() +
+  labs(title = "Daily average fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  scale_color_manual(values = c("daytime" = "blue", "nighttime" = "red")) +  # Adjust colors as needed
+  theme_minimal() +
+  facet_wrap(~Site) +
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
 
 #############################################
 ###             Data analysis
