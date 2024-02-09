@@ -34,6 +34,7 @@ library(see)
 library(broom)
 library(readxl)
 library(outliers)
+library(plotly)
 ```
 
 ### 1. Load and extract the new cleaned rds files in one data frame `combined_data`
@@ -141,13 +142,95 @@ Data_by_Season  <- joined_data %>%
   ))
 ```
 
-
 ##### 4.1 Data by season
 ```{r,echo=TRUE, max.height='100px', attr.output='.numberLines'}
 
 head(Data_by_Season)
 
 ```
+
+
+```{r, include=FALSE}
+# Reshape data using gather function
+gathered_data <- tidyr::gather(Data_by_Season, key = "Temperature_Variable", value = "Temperature", T1, T2, T3)
+
+
+
+# Create a boxplot with all temperature variables on the same plot
+## winter ##
+# Specify the order of levels for Canopy_openness
+canopy_order <- c("Open", "Semi-closed", "Closed")
+```
+
+### Winter
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+gathered_data %>%
+  filter(season == 'winter') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
+ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+
+### Spring
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+## Spring ##
+gathered_data %>%
+  filter(season=='spring')%>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+
+### Summer
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+## summer ##
+gathered_data %>%
+  filter(season=='summer')%>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+```
+<div style="margin-bottom: 70px;"></div>
+
+
+### FaLL
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+## Fall ##
+gathered_data %>%
+  filter(season=='fall')%>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+```
+
 
 
 
@@ -180,6 +263,94 @@ head(daily_averages_Tmin_Tmax)
 
 ```
 
+
+```{r}
+####### Daily average #######
+# Reshape data using gather function
+gathered_data2 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C", avg_T1, avg_T2, avg_T3)
+
+
+
+# Specify the order of levels for Canopy_openness
+canopy_order <- c("Open", "Semi-closed", "Closed")
+
+```
+
+### Winter
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+## winter ##
+gathered_data2 %>%
+  filter(season == 'winter') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
+  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Daily average winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+### Spring
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+gathered_data2 %>%
+  filter(season=='spring')%>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Daily average spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+### Summer
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+gathered_data2 %>%
+  filter(season=='summer')%>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Daily average summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+```
+
+<div style="margin-bottom: 70px;"></div>
+### Fall
+```{r, echo=FALSE,fig.width=14, fig.height=14}
+gathered_data2 %>%
+  filter(season=='fall')%>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  geom_boxplot() +
+  labs(title = "Daily average fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  theme_minimal()+
+  facet_wrap(~Site)+
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
 ##### 4.3 Aggregate to daytime (6am-6pm) and nightime (6pm-6am)
 ```{r,include=FALSE}
 ## Aggregate the data to daytime (6am-6pm) and nightime (6pm-6am)
@@ -211,6 +382,32 @@ daynight_averages <- time_of_day %>%
 head(daynight_averages)
 
 ```
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r,include=FALSE}
 #############################
