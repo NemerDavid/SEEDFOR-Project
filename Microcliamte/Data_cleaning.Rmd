@@ -2,7 +2,13 @@
 title: "Data_cleaning2"
 author: "David"
 date: "2024-01-24"
-output: html_document
+output: 
+  pdf_document:
+    toc: true
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 4
+
 ---
 
 
@@ -35,14 +41,16 @@ library(broom)
 library(readxl)
 library(outliers)
 library(plotly)
+library(kableExtra)
 ```
 
-### 1. Load and extract the new cleaned rds files in one data frame `combined_data`
+# 1. Load and extract the new cleaned rds files in one data frame 
+`combined_data`
 ```{r, include = FALSE}
 ###############################################
 ###  load and extract the new cleaned rds files
 ###############################################
-new_folder_path <- "C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST_Cleaned1"
+new_folder_path <- "C:/Users/David/Desktop/SeedFor/Data analysis/SEEDFOR/Data/TOMST_Cleaned1"
 #### 1-load ###
 # Get a list of all RDS files in the folder
 rds_files <- list.files(path = new_folder_path, pattern = "\\.rds$", full.names = TRUE)
@@ -86,7 +94,7 @@ head(combined_data)
 ```
 
 
-### 2. Removing loggers that were out of soil and not working properly
+# 2. Removing loggers that were out of soil and not working properly
 ```{r,echo=TRUE,collapse=TRUE}
 
 filtered_data <- combined_data %>%
@@ -97,11 +105,10 @@ unique(filtered_data$logger_id) # check if the loggers were removed
 
 
 
-### 3. Load the sensors metadata that contain the information of whether the loggers are inside or outside the cage and add that information to the main dataset
+# 3. Load the sensors metadata that contain the information of whether the loggers are inside or outside the cage and add that information to the main dataset
 ```{r,echo=TRUE}
-Sensors_data <- read_excel("C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST metadata/Sensors_20230904.xlsx", 
-                           sheet = "capteurs")
-
+#Sensors_data <- read_excel("C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST metadata/Sensors_20230904.xlsx",  sheet = "capteurs")
+Sensors_data <-read_excel("C:/Users/David/Desktop/SeedFor/Project/SEEDFOR/Field/20230904_MonitoringC1/microclim/Sensors_20230904.xlsx", sheet = "capteurs")
 
 
 # Convert sensor_id in Sensors_data to character and add In_out column 
@@ -119,7 +126,7 @@ head(joined_data)
 
 
 
-### 4. Aggregating the data by season, daily averages, daily min and max temperatues and to daytime (6am-6pm) and nightime (6pm-6am)
+# 4. Aggregating the data by season, daily averages, daily min and max temperatues
 
 ```{r,include=FALSE}
 #############################
@@ -140,297 +147,161 @@ Data_by_Season  <- joined_data %>%
     month(date) %in% c(6, 7, 8) ~ "summer",
     month(date) %in% c(9, 10, 11) ~ "fall"
   ))
+
+
+daily_Tmean_Tmin_Tmax <- Data_by_Season %>%
+  group_by(season,day,Canopy_openness,Site) %>%
+  summarize(
+    avg_T1 = mean(T1),
+    avg_T3 = mean(T3),
+    max_T1 = max(T1),
+    min_T1 = min(T1),
+    max_T3 = max(T3),
+    min_T3 = min(T3)
+  )
 ```
 
-##### 4.1 Data by season
+
 ```{r,echo=TRUE, max.height='100px', attr.output='.numberLines'}
 
-head(Data_by_Season)
+head(daily_Tmean_Tmin_Tmax)
 
 ```
 
 
+## 4.1  Temperatures measured at 8 cm below ground
 ```{r, include=FALSE}
-# Reshape data using gather function
-gathered_data <- tidyr::gather(Data_by_Season, key = "Temperature_Variable", value = "Temperature", T1, T2, T3)
-
-
-
-# Create a boxplot with all temperature variables on the same plot
-## winter ##
-# Specify the order of levels for Canopy_openness
-canopy_order <- c("Open", "Semi-closed", "Closed")
-```
-
-### Winter
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-gathered_data %>%
-  filter(season == 'winter') %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
-ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
-  theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
-
-
-```
-<div style="margin-bottom: 70px;"></div>
-
-
-### Spring
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-## Spring ##
-gathered_data %>%
-  filter(season=='spring')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
-  theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
-
-
-```
-<div style="margin-bottom: 70px;"></div>
-
-
-### Summer
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-## summer ##
-gathered_data %>%
-  filter(season=='summer')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
-  theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
-```
-<div style="margin-bottom: 70px;"></div>
-
-
-### FaLL
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-## Fall ##
-gathered_data %>%
-  filter(season=='fall')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
-  theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
-```
-
-
-
-
-##### 4.2 Aggregate by daily averages and daily min and max temperatures
-```{r,include=FALSE}
-#calculate daily averages and daily min and max temperatures
-daily_averages_Tmin_Tmax<- Data_by_Season %>%
-  group_by(season,day,Canopy_openness,Site,In_out) %>%
-  summarize(
-    avg_T1 = mean(T1),
-    avg_T2 = mean(T2),
-    avg_T3 = mean(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_T1 = max(T1),
-    min_T1 = min(T1),
-    max_T2 = max(T2),
-    min_T2 = min(T2),
-    max_T3 = max(T3),
-    min_T3 = min(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_soil_moisture = max(soil_moisture),
-    min_soil_moisture = min(soil_moisture)
-  )
-
-```
-
-```{r,echo=TRUE, max.height='100px', attr.output='.numberLines'}
-
-head(daily_averages_Tmin_Tmax)
-
-```
-
-
-```{r}
-####### Daily average #######
-# Reshape data using gather function
-gathered_data2 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C", avg_T1, avg_T2, avg_T3)
-
-
+gathered_data <- tidyr::gather(daily_Tmean_Tmin_Tmax, key = "Temperature_Variable", value = "Temperature", avg_T1, avg_T3,max_T1,max_T3,min_T1,min_T3)
+head(gathered_data)
 
 # Specify the order of levels for Canopy_openness
 canopy_order <- c("Open", "Semi-closed", "Closed")
-
 ```
 
-### Winter
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-## winter ##
-gathered_data2 %>%
-  filter(season == 'winter') %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+#### 4.1.1 Daily mean temperature measured at 8 cm below ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data %>%
+  filter(Temperature_Variable == 'avg_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
   geom_boxplot() +
-  labs(title = "Daily average winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
+  labs(title = "Daily mean temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(legend.position = "none",text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 15))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+
+#### 4.1.2 Daily maximum temperature measured at 8 cm below ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data %>%
+  filter(Temperature_Variable == 'max_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily maximum temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
   theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 
 ```
 <div style="margin-bottom: 70px;"></div>
 
-### Spring
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-gathered_data2 %>%
-  filter(season=='spring')%>%
+
+####  4.1.3 Daily minimum temperature measured at 8 cm below ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data %>%
+  filter(Temperature_Variable == 'min_T1') %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
   geom_boxplot() +
-  labs(title = "Daily average spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
+  labs(title = "Daily minimum temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
   theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+```
+<div style="margin-bottom: 70px;"></div>
+
+## 4.2  Temperatures measured at 15 cm above ground
+### 4.2.1 Daily mean temperature measured at 15 cm above ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data %>%
+  filter(Temperature_Variable == 'avg_T3') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily mean temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 ```
 <div style="margin-bottom: 70px;"></div>
 
-### Summer
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-gathered_data2 %>%
-  filter(season=='summer')%>%
+### 4.2.2 Daily maximum temperature measured at 15 cm above ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data %>%
+  filter(Temperature_Variable == 'max_T3') %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
   geom_boxplot() +
-  labs(title = "Daily average summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
+  labs(title = "Daily maximum temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
   theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
-```
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
+```
 <div style="margin-bottom: 70px;"></div>
-### Fall
-```{r, echo=FALSE,fig.width=14, fig.height=14}
-gathered_data2 %>%
-  filter(season=='fall')%>%
+
+
+###  4.2.3 Daily minimum temperature measured at 15 cm above ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data %>%
+  filter(Temperature_Variable == 'min_T3') %>%
   mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
   geom_boxplot() +
-  labs(title = "Daily average fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)+
+  labs(title = "Daily minimum temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
   theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
-
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 ```
 
 
 
-
-
-
-
-
-
-
-
-
-##### 4.3 Aggregate to daytime (6am-6pm) and nightime (6pm-6am)
-```{r,include=FALSE}
-## Aggregate the data to daytime (6am-6pm) and nightime (6pm-6am)
-time_of_day <- Data_by_Season %>%
-  mutate(time_of_day = ifelse(hour(date) >= 6 & hour(date) < 18, "daytime", "nighttime"))
-head(time_of_day)
-
-# Calculate daytime vs. nighttime averages
-daynight_averages <- time_of_day %>%
-  group_by(season,day,Canopy_openness,Site,time_of_day,In_out) %>%
-  summarize(
-    avg_T1 = mean(T1),
-    avg_T2 = mean(T2),
-    avg_T3 = mean(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_T1 = max(T1),
-    min_T1 = min(T1),
-    max_T2 = max(T2),
-    min_T2 = min(T2),
-    max_T3 = max(T3),
-    min_T3 = min(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_soil_moisture = max(soil_moisture),
-    min_soil_moisture = min(soil_moisture)
-  )
-```
-```{r,echo=TRUE, max.height='100px', attr.output='.numberLines'}
-
-head(daynight_averages)
-
-```
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### 5. Aggregating the data by season, daily averages, daily min and max temperatues after removing outliers
 
 ```{r,include=FALSE}
 #############################
 ####  Detecting outliers
 #############################
-summary(Data_by_Season)
-
-
-
-# Reshape data using gather function
-gathered_data <- tidyr::gather(Data_by_Season, key = "Temperature_Variable", value = "Temperature", T1, T2, T3)
-
-# Create a boxplot with all temperature variables on the same plot
-ggplot(gathered_data, aes(x = Temperature_Variable, y = Temperature, fill = Temperature_Variable)) +
-                   geom_boxplot() +
-                   labs(title = "Boxplots for T1, T2, and T3", x = "Temperature Variables", y = "Temperature") +
-                   theme_minimal()+
-                   facet_wrap(~ season + Canopy_openness)
-
-### T2 and T3 follow the same trend throughout the different seasons and canopy types, 
-### so in the following steps only T1 and T3 will be investigated
-
-
 library(outliers)
 
 grubbs.test(Data_by_Season$T3)
@@ -479,24 +350,159 @@ for (season in seasons) {
   joined_data_filtered <- rbind(joined_data_filtered, subset_data_filtered)
   }
 }
+summary(joined_data_filtered) 
+```
 
-# Print the summary of the filtered data
-summary(joined_data_filtered)
+```{r,include=FALSE}
+#########################
+####       Data by Season 
+#########################
+
+daily_Tmean_Tmin_Tmax2 <- joined_data_filtered %>%
+  group_by(season,day,Canopy_openness,Site) %>%
+  summarize(
+    avg_T1 = mean(T1),
+    avg_T3 = mean(T3),
+    max_T1 = max(T1),
+    min_T1 = min(T1),
+    max_T3 = max(T3),
+    min_T3 = min(T3)
+  )
+```
 
 
+```{r,echo=TRUE, max.height='100px', attr.output='.numberLines'}
 
-### visualize the data after removing the outliers
-# Reshape data using gather function
-gathered_data2 <- tidyr::gather(joined_data_filtered, key = "Temperature_Variable", value = "Temperature", T1, T2, T3)
-
-# Create a boxplot with all temperature variables on the same plot
-ggplot(gathered_data2, aes(x = Temperature_Variable, y = Temperature, fill = Temperature_Variable)) +
-                   geom_boxplot() +
-                   labs(title = "Boxplots for T1, T2, and T3", x = "Temperature Variables", y = "Temperature") +
-                   theme_minimal()+
-                   facet_wrap(~ season + Canopy_openness)
+head(daily_Tmean_Tmin_Tmax)
 
 ```
+
+
+## 5.1  Temperatures measured at 8 cm below ground
+```{r, include=FALSE}
+gathered_data2 <- tidyr::gather(daily_Tmean_Tmin_Tmax2, key = "Temperature_Variable", value = "Temperature", avg_T1, avg_T3,max_T1,max_T3,min_T1,min_T3)
+head(gathered_data2)
+
+# Specify the order of levels for Canopy_openness
+canopy_order <- c("Open", "Semi-closed", "Closed")
+```
+
+#### 5.1.1 Daily mean temperature measured at 8 cm below ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data2 %>%
+  filter(Temperature_Variable == 'avg_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily mean temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+
+#### 5.1.2 Daily maximum temperature measured at 8 cm below ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data2 %>%
+  filter(Temperature_Variable == 'max_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily maximum temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+
+####  5.1.3 Daily minimum temperature measured at 8 cm below ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data2 %>%
+  filter(Temperature_Variable == 'min_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily minimum temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+```
+<div style="margin-bottom: 70px;"></div>
+
+## 5.2  Temperatures measured at 15 cm above ground
+### 5.2.1 Daily mean temperature measured at 15 cm above ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data2 %>%
+  filter(Temperature_Variable == 'avg_T3') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily mean temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+### 5.2.2 Daily maximum temperature measured at 15 cm above ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data2 %>%
+  filter(Temperature_Variable == 'max_T3') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily maximum temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+```
+<div style="margin-bottom: 70px;"></div>
+
+
+###  5.2.3 Daily minimum temperature measured at 15 cm above ground
+```{r, echo=FALSE,fig.width=20, fig.height=14}
+gathered_data2 %>%
+  filter(Temperature_Variable == 'min_T3') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily minimum temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 22),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 11.5))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+```
+
 
 
 
