@@ -9,7 +9,7 @@ library(performance)
 library(see)
 library(broom)
 library(readxl)
-
+library(MuMIn)
 ###############################################
 ###  load and extract the new cleaned rds files
 ###############################################
@@ -66,7 +66,6 @@ Sensors_data <- read_excel("C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Pro
                            sheet = "capteurs")
 
 
-
 head(filtered_data)
 head(Sensors_data)
 
@@ -88,9 +87,27 @@ unique(joined_data$logger_id)
 
 
 
-#############################
-####       Data by Season 
-#############################
+######################################################################################
+#### 3. Load the sensors metadata that contain the information of whether the loggers 
+####  are inside or outside the cage and add that information to the main dataset
+######################################################################################
+Sensors_data <- read_excel("C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST metadata/Sensors_20230904.xlsx",  sheet = "capteurs")
+#Sensors_data <-read_excel("C:/Users/David/Desktop/SeedFor/Project/SEEDFOR/Field/20230904_MonitoringC1/microclim/Sensors_20230904.xlsx", sheet = "capteurs")
+
+
+# Convert sensor_id in Sensors_data to character and add In_out column 
+# that inform us if the logger is inside or outside the cage
+Sensors_data <- mutate(Sensors_data, sensor_id = as.character(sensor_id))
+# Join the two data sets on logger_id and sensor_id
+joined_data <- filtered_data %>%
+  left_join(Sensors_data, by = c("logger_id" = "sensor_id")) %>%
+  # Select the columns you want from the joined data and filtered data
+  select(date, logger_id, T1, T2, T3, soil_moisture, Canopy_openness, Site, In_out)
+head(joined_data)
+
+######################################################################################
+##### 4. Aggregating the data by season, daily averages, daily min and max temperatues
+######################################################################################
 # Convert date column to a datetime object
 joined_data$date <- as.POSIXct(joined_data$date, format="%Y-%m-%d %H:%M:%S")
 # Create a new column for the date without the time component
@@ -109,241 +126,489 @@ Data_by_Season  <- joined_data %>%
 
 head(Data_by_Season)
 
+daily_Tmean_Tmin_Tmax <- Data_by_Season %>%
+  group_by(season,day,Canopy_openness,Site,In_out) %>%
+  summarize(
+    avg_T1 = mean(T1),
+    avg_T3 = mean(T3),
+    max_T1 = max(T1),
+    min_T1 = min(T1),
+    max_T3 = max(T3),
+    min_T3 = min(T3)
+  )
 
 
-#############################
-####  Detecting outliers
-#############################
+
+
+
+## 4.1  Temperatures measured at 8 cm below ground
+gathered_data <- tidyr::gather(daily_Tmean_Tmin_Tmax, key = "Temperature_Variable", value = "Temperature", avg_T1, avg_T3,max_T1,max_T3,min_T1,min_T3)
+head(gathered_data)
+
+# Specify the order of levels for Canopy_openness
+canopy_order <- c("Open", "Semi-closed", "Closed")
+
+##############################################################
+### 4.1.1 Daily mean temperature measured at 8 cm below ground
+##############################################################
+gathered_data %>%
+  filter(Temperature_Variable == 'avg_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily mean temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+
+summary(daily_Tmean_Tmin_Tmax)
+
+str(daily_Tmean_Tmin_Tmax)
+head(daily_Tmean_Tmin_Tmax)
+# Fit a linear mixed-effects model
+anova(model1_avgT1 <- lmer(avg_T1 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax, season=="winter")))
+
+
+# Posthoc test #
+lsmeans_interaction <- lsmeans::lsmeans(model1_avgT1, ~ Canopy_openness*Site)### David script
+multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")#### David script
+
+
+mixed(model_avgT1, data = daily_Tmean_Tmin_Tmax)
+anova(model1_avgT1,model2_avgT1)
+
+
+qqnorm(residuals(model_avgT1))
+qqline(residuals(model_avgT1))
+
+
+# Check assumptions
+check_normality(model_avgT1) 
+check_heteroscedasticity(model_avgT1)
+check_model(model_avgT1)
+
+
+# Compute marginal and conditional R-squared for the mixed-effects model
+r_squared <- r.squaredGLMM(model_avgT1) 
+
+# The marginal R-squared (R2m) is 0.8245, indicating the proportion of variance explained by the fixed effects alone.
+# The conditional R-squared (R2c) is 0.9864, which includes both fixed and random effects, showing a high proportion of variance explained by the entire model
+
+
+
+
+# Assuming 'gathered_data' is your data frame and 'Canopy_openness' is a factor variable
+# representing the levels used in lsmeans_interaction
+
+# Your existing ggplot code...
+gathered_data %>%
+  filter(Temperature_Variable == 'avg_T1' & season=="winter") %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily mean temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))+
+  # Add text labels for post hoc results
+  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
+                aes(x = Canopy_openness, y = lsmean, label = .group), 
+                position = position_dodge(width = 0.75), 
+                vjust = -0.5, size = 5)
+
+
+
+
+##################################################################
+### 4.1.2 Daily maximum temperature measured at 8 cm below ground
+##################################################################
+gathered_data %>%
+  filter(Temperature_Variable == 'max_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily maximum temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+
+
+# Fit a linear mixed-effects model
+anova(model_maxT1 <- lmer(max_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+
+
+mixed(model_avgT1, data = daily_Tmean_Tmin_Tmax)
+
+
+qqnorm(residuals(model_maxT1))
+qqline(residuals(model_maxT1))
+
+
+# Check assumptions
+check_normality(model_maxT1) 
+check_heteroscedasticity(model_maxT1)
+check_model(model_maxT1)
+
+
+# Compute marginal and conditional R-squared for the mixed-effects model
+r_squared <- r.squaredGLMM(model_maxT1) 
+print(r_squared)
+
+
+##################################################################
+###  4.1.3 Daily minimum temperature measured at 8 cm below ground
+##################################################################
+gathered_data %>%
+  filter(Temperature_Variable == 'min_T1') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily minimum temperature measured at 8 cm below ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+
+# Fit a linear mixed-effects model
+anova(model_minT1 <- lmer(min_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+
+
+mixed(model_minT1, data = daily_Tmean_Tmin_Tmax)
+
+
+qqnorm(residuals(model_minT1))
+qqline(residuals(model_minT1))
+
+
+# Check assumptions
+check_normality(model_minT1) 
+check_heteroscedasticity(model_minT1)
+check_model(model_minT1)
+
+
+# Compute marginal and conditional R-squared for the mixed-effects model
+r_squared <- r.squaredGLMM(model_minT1) 
+print(r_squared)
+
+
+  
+## 4.2  Temperatures measured at 15 cm above ground
+###############################################################
+### 4.2.1 Daily mean temperature measured at 15 cm above ground
+###############################################################
+gathered_data %>%
+  filter(Temperature_Variable == 'avg_T3') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily mean temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+
+
+# Fit a linear mixed-effects model
+anova(model_avgT3 <- lmer(avg_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+
+
+mixed(model_avgT3, data = daily_Tmean_Tmin_Tmax)
+
+
+qqnorm(residuals(model_avgT3))
+qqline(residuals(model_avgT3))
+
+
+# Check assumptions
+check_normality(model_avgT3) 
+check_heteroscedasticity(model_avgT3)
+check_model(model_avgT3)
+
+
+# Compute marginal and conditional R-squared for the mixed-effects model
+r_squared <- r.squaredGLMM(model_avgT3) 
+print(r_squared)
+
+
+###################################################################
+### 4.2.2 Daily maximum temperature measured at 15 cm above ground
+##################################################################
+gathered_data %>%
+  filter(Temperature_Variable == 'max_T3') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily maximum temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+
+
+# Fit a linear mixed-effects model
+anova(model_maxT3 <- lmer(max_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+
+
+mixed(model_maxT3, data = daily_Tmean_Tmin_Tmax)
+
+
+qqnorm(residuals(model_maxT3))
+qqline(residuals(model_maxT3))
+
+
+# Check assumptions
+check_normality(model_maxT3) 
+check_heteroscedasticity(model_maxT3)
+check_model(model_maxT3)
+
+
+# Compute marginal and conditional R-squared for the mixed-effects model
+r_squared <- r.squaredGLMM(model_maxT3) 
+print(r_squared)
+
+
+
+head(Data_by_Season[,c(-2,-4,-6)])
+
+
+your_data_daily <- Data_by_Season %>%
+  group_by(date,season,Canopy_openness,Site,In_out ) %>%
+  summarise(avg_T1 = mean(T1),
+            max_T1 = max(T1),
+            min_T1 = min(T1))
+
+summary(your_data_daily$min_T1)
+your_data_daily$numeric_date <- as.numeric(your_data_daily$date)
+
+model <- lmer(avg_T1 ~ season + Canopy_openness + Site + numeric_date + (1 | Site) + (1 | In_out) + (1 | numeric_date), 
+              data = your_data_daily)
+
+
+
+####################################################################
+###  4.2.3 Daily minimum temperature measured at 15 cm above ground
+####################################################################
+ 
+gathered_data %>%
+  filter(Temperature_Variable == 'min_T3') %>%
+  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
+  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
+  geom_boxplot() +
+  labs(title = "Daily minimum temperature measured at 15 cm above ground", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
+  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
+  #theme_minimal() +
+  facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
+  theme(text = element_text(size = 28),
+        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
+#theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
+
+
+
+# Fit a linear mixed-effects model
+anova(model_minT3 <- lmer(min_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+
+
+mixed(model_minT3, data = daily_Tmean_Tmin_Tmax)
+
+
+qqnorm(residuals(model_minT3))
+qqline(residuals(model_minT3))
+
+
+# Check assumptions
+check_normality(model_minT3) 
+check_heteroscedasticity(model_minT3)
+check_model(model_minT3)
+
+
+# Compute marginal and conditional R-squared for the mixed-effects model
+r_squared <- r.squaredGLMM(model_minT3) 
+print(r_squared)
+
+head(daily_Tmean_Tmin_Tmax)
+
+#######################################
+####  4.3  Aggregate the data to daytime (6am-6pm) and nightime (6pm-6am)
+######################################
+time_of_day <- Data_by_Season %>%
+  mutate(time_of_day = ifelse(hour(date) >= 6 & hour(date) < 18, "daytime", "nighttime"))
+head(time_of_day)
+
+# Calculate daytime vs. nighttime averages
+daynight_averages <- time_of_day %>%
+  group_by(season,day,Canopy_openness,Site,time_of_day,In_out) %>%
+  summarize(
+    avg_T1 = mean(T1),
+    avg_T3 = mean(T3),
+    max_T1 = max(T1),
+    min_T1 = min(T1),
+    max_T3 = max(T3),
+    min_T3 = min(T3),
+  )
+head(daynight_averages)
+
+
+
+###########################################
+####  Detecting outliers in model residuals
+###########################################
+anova(model_avgT1 <- lmer(avg_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+anova(model_maxT1 <- lmer(max_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+anova(model_minT1 <- lmer(min_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+
+anova(model_avgT3 <- lmer(avg_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+anova(model_maxT3 <- lmer(max_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+anova(model_minT3 <- lmer(min_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = daily_Tmean_Tmin_Tmax))
+
+# Extract residuals from the model
+residuals_avgT1 <- resid(model_avgT1)
+residuals_maxT1 <- resid(model_maxT1)
+residuals_minT1 <- resid(model_minT1)
+
+residuals_avgT3 <- resid(model_avgT3)
+residuals_maxT3 <- resid(model_maxT3)
+residuals_minT3 <- resid(model_minT3)
+
+
+# Add residuals to the original data for T1
+daily_Tmean_Tmin_Tmax$residuals_avgT1 <- residuals_avgT1
+daily_Tmean_Tmin_Tmax$residuals_maxT1 <- residuals_maxT1
+daily_Tmean_Tmin_Tmax$residuals_minT1 <- residuals_minT1
+
+# Add residuals to the original data for T3
+daily_Tmean_Tmin_Tmax$residuals_avgT3 <- residuals_avgT3
+daily_Tmean_Tmin_Tmax$residuals_maxT3 <- residuals_maxT3
+daily_Tmean_Tmin_Tmax$residuals_minT3 <- residuals_minT3
+
+
+
+
+### Here is the method in case we want to remove all the outliers above the upper fence and bellow the lower fence
+head(daily_Tmean_Tmin_Tmax)
+# For season, canopy openness & site #
+seasons <- unique(daily_Tmean_Tmin_Tmax$season)
+canopies <- unique(daily_Tmean_Tmin_Tmax$Canopy_openness)
+sites<-unique(daily_Tmean_Tmin_Tmax$Site)
+# Create an empty data frame to store the filtered results
+joined_data_filtered<- data.frame()
+
+# Loop through each season & canopy types
+for (season in seasons) {
+  for (canopy in canopies) {
+    for (site in sites) {
+      subset_data <- daily_Tmean_Tmin_Tmax[daily_Tmean_Tmin_Tmax$season == season & daily_Tmean_Tmin_Tmax$Canopy_openness == canopy & daily_Tmean_Tmin_Tmax$Site == site, ] 
+      
+      # Calculate IQR for each temperature variable
+      iqr_avg_T1 <- IQR(subset_data$residuals_avgT1)
+      iqr_max_T1 <- IQR(subset_data$residuals_maxT1)
+      iqr_min_T1 <- IQR(subset_data$residuals_minT1)
+      iqr_avg_T3 <- IQR(subset_data$residuals_avgT3)
+      iqr_max_T3 <- IQR(subset_data$residuals_maxT3)
+      iqr_min_T3 <- IQR(subset_data$residuals_minT3)
+      
+      # Set a threshold as 1.5 times the IQR
+      threshold_multiplier <- 1.5
+      lower_threshold_avg_T1 <- quantile(subset_data$residuals_avgT1, 0.25) - threshold_multiplier * iqr_avg_T1
+      upper_threshold_avg_T1 <- quantile(subset_data$residuals_avgT1, 0.75) + threshold_multiplier * iqr_avg_T1
+      
+      lower_threshold_max_T1 <- quantile(subset_data$residuals_maxT1, 0.25) - threshold_multiplier * iqr_max_T1
+      upper_threshold_max_T1 <- quantile(subset_data$residuals_maxT1, 0.75) + threshold_multiplier * iqr_max_T1
+      
+      lower_threshold_min_T1 <- quantile(subset_data$residuals_minT1, 0.25) - threshold_multiplier * iqr_min_T1
+      upper_threshold_min_T1 <- quantile(subset_data$residuals_minT1, 0.75) + threshold_multiplier * iqr_min_T1
+      
+      lower_threshold_avg_T3 <- quantile(subset_data$residuals_avgT3, 0.25) - threshold_multiplier * iqr_avg_T3
+      upper_threshold_avg_T3 <- quantile(subset_data$residuals_avgT3, 0.75) + threshold_multiplier * iqr_avg_T3
+      
+      lower_threshold_max_T3 <- quantile(subset_data$residuals_maxT3, 0.25) - threshold_multiplier * iqr_max_T3
+      upper_threshold_max_T3 <- quantile(subset_data$residuals_maxT3, 0.75) + threshold_multiplier * iqr_max_T3
+      
+      lower_threshold_min_T3 <- quantile(subset_data$residuals_minT3, 0.25) - threshold_multiplier * iqr_min_T3
+      upper_threshold_min_T3 <- quantile(subset_data$residuals_minT3, 0.75) + threshold_multiplier * iqr_min_T3
+      
+      
+      
+      
+      # Filter out values beyond the thresholds for each season, canopy openness & site 
+      subset_data_filtered <- subset_data %>%
+        filter(
+          residuals_avgT1 >= lower_threshold_avg_T1 & residuals_avgT1 <= upper_threshold_avg_T1,
+          residuals_maxT1 >= lower_threshold_max_T1 & residuals_maxT1 <= upper_threshold_max_T1,
+          residuals_minT1 >= lower_threshold_min_T1 & residuals_minT1 <= upper_threshold_max_T1,
+          residuals_avgT3 >= lower_threshold_avg_T3 & residuals_avgT3 <= upper_threshold_avg_T3,
+          residuals_maxT3 >= lower_threshold_max_T3 & residuals_maxT3 <= upper_threshold_max_T3,
+          residuals_minT3 >= lower_threshold_min_T3 & residuals_minT3 <= upper_threshold_min_T3
+          )
+      
+      # Append the filtered results to the main data frame
+      joined_data_filtered <- rbind(joined_data_filtered, subset_data_filtered)
+    }
+  }
+}
+# Print the summary of the filtered data
 summary(Data_by_Season)
+summary(joined_data_filtered)
 
-head(Data_by_Season%>%
-  group_by(season,Canopy_openness,Site,In_out)%>%
-summarize( 
-  max_T1 = max(T1),
-  min_T1 = min(T1),
-  max_T2 = max(T2),
-  min_T2 = min(T2),
-  max_T3 = max(T3),
-  min_T3 = min(T3))%>%
-arrange(desc(max_T3),desc(max_T2),desc(max_T1)))
 
+model_avgT1 <- lmer(avg_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = joined_data_filtered)
+amodel_maxT1 <- lmer(max_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = joined_data_filtered)
+model_minT1 <- lmer(min_T1 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = joined_data_filtered)
+
+anova(model_avgT3 <- lmer(avg_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = joined_data_filtered))
+anova(model_maxT3 <- lmer(max_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = joined_data_filtered))
+anova(model_minT3 <- lmer(min_T3 ~ season*Canopy_openness*Site + (1|day)+ (1|In_out), data = joined_data_filtered))
 
 
 
+
+
+qqnorm(residuals(model_maxT1))
+qqline(residuals(model_maxT1))
+
+
+# Check assumptions
+check_normality(model_maxT1) 
+check_heteroscedasticity(model_maxT1)
+check_model(model_minT3)
+
+
+
+### visualize the data after removing the outliers
 # Reshape data using gather function
-gathered_data <- tidyr::gather(Data_by_Season, key = "Temperature_Variable", value = "Temperature", T1, T2, T3)
-
-
+gathered_data22 <- tidyr::gather(joined_data_filtered, key = "Temperature_Variable", value = "Temperature", avg_T1, max_T1, min_T1)
 
 # Create a boxplot with all temperature variables on the same plot
-## winter ##
-# Specify the order of levels for Canopy_openness
-canopy_order <- c("Open", "Semi-closed", "Closed")
-
-gathered_data %>%
-  filter(season == 'winter') %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot(position = "dodge") +  # Specify position to stack box plots
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal() +
-  facet_wrap(~Site)+
-  theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))  # Adjust margin for vertical spacing
-
-
-
-
-
-## Spring ##
-gathered_data %>%
-  filter(season=='spring')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
+ggplot(gathered_data22, aes(x = Temperature_Variable, y = Temperature, fill = Temperature_Variable)) +
   geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
+  labs(title = "Boxplots for T1, T2, and T3", x = "Temperature Variables", y = "Temperature °C") +
   theme_minimal()+
-  facet_wrap(~Site)
-
-
-## summer ##
-gathered_data %>%
-  filter(season=='summer')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-## Fall ##
-gathered_data %>%
-  filter(season=='fall')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-
-####### Daily average #######
-# Reshape data using gather function
-gathered_data2 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C", avg_T1, avg_T2, avg_T3)
-
-
-## winter ##
-# Specify the order of levels for Canopy_openness
-canopy_order <- c("Open", "Semi-closed", "Closed")
-
-gathered_data2 %>%
-  filter(season == 'winter') %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-
-## Spring ##
-gathered_data2 %>%
-  filter(season=='spring')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-## summer ##
-gathered_data2 %>%
-  filter(season=='summer')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-## Fall ##
-gathered_data2 %>%
-  filter(season=='fall')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-
-####### Daily extreme #######
-# Reshape data using gather function
-gathered_data3 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C", max_T1, max_T2, max_T3)
-
-## MAX temp ##
-
-## winter ##
-# Specify the order of levels for Canopy_openness
-canopy_order <- c("Open", "Semi-closed", "Closed")
-
-gathered_data3 %>%
-  filter(season == 'winter') %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-
-## Spring ##
-gathered_data3 %>%
-  filter(season=='spring')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-## summer ##
-gathered_data3 %>%
-  filter(season=='summer')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-## Fall ##
-gathered_data3 %>%
-  filter(season=='fall')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-# Reshape data using gather function
-gathered_data4 <- tidyr::gather(daynight_averages, key = "Temperature_Variable", value = "Temperature °C",min_T1, min_T2, min_T3)
-
-## Min temp ##
-
-## winter ##
-# Specify the order of levels for Canopy_openness
-canopy_order <- c("Open", "Semi-closed", "Closed")
-
-gathered_data4 %>%
-  filter(season == 'winter') %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%  # Specify order
-  ggplot( aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute winter temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Site)
-
-
-
-## Spring ##
-gathered_data4 %>%
-  filter(season=='spring')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Site, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute spring temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Canopy_openness)
-
-
-## summer ##
-gathered_data4 %>%
-  filter(season=='summer')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Site, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute summer temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Canopy_openness)
-
-## Fall ##
-gathered_data4 %>%
-  filter(season=='fall')%>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot( aes(x = Site, y = Temperature, fill = Temperature_Variable)) +
-  geom_boxplot() +
-  labs(title = "Absolute fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  theme_minimal()+
-  facet_wrap(~Canopy_openness)
+  facet_wrap(~ season + Canopy_openness)
 
 
 
@@ -364,8 +629,12 @@ gathered_data4 %>%
 
 
 
-### T2 and T3 follow the same trend throughout the different seasons and canopy types, 
-### so in the following steps only T1 and T3 will be investigated
+
+
+########################################
+####  Detecting outliers in the raw data
+########################################
+summary(Data_by_Season)
 
 
 library(outliers)
@@ -382,7 +651,7 @@ seasons <- unique(Data_by_Season$season)
 canopies <- unique(Data_by_Season$Canopy_openness)
 sites<-unique(Data_by_Season$Site)
 # Create an empty data frame to store the filtered results
-joined_data_filtered<- data.frame()
+joined_data_filtered2<- data.frame()
 
 # Loop through each season & canopy types
 for (season in seasons) {
@@ -415,19 +684,17 @@ for (season in seasons) {
     )
   
   # Append the filtered results to the main data frame
-  joined_data_filtered <- rbind(joined_data_filtered, subset_data_filtered)
+  joined_data_filtered2 <- rbind(joined_data_filtered2, subset_data_filtered)
   }
  }
 }
 # Print the summary of the filtered data
 summary(Data_by_Season)
-summary(joined_data_filtered)
-
-
+summary(joined_data_filtered2)
 
 ### visualize the data after removing the outliers
 # Reshape data using gather function
-gathered_data22 <- tidyr::gather(joined_data_filtered, key = "Temperature_Variable", value = "Temperature °C", T1, T2, T3)
+gathered_data22 <- tidyr::gather(joined_data_filtered2, key = "Temperature_Variable", value = "Temperature", T1, T2, T3)
 
 # Create a boxplot with all temperature variables on the same plot
 ggplot(gathered_data22, aes(x = Temperature_Variable, y = Temperature, fill = Temperature_Variable)) +
@@ -436,71 +703,7 @@ ggplot(gathered_data22, aes(x = Temperature_Variable, y = Temperature, fill = Te
                    theme_minimal()+
                    facet_wrap(~ season + Canopy_openness)
 
-#######################################
-####    daily min and max temperatures
-######################################
 
-#calculate daily averages and daily min and max temperatures
-daily_averages_Tmin_Tmax<- Data_by_Season %>%
-  group_by(season,day,Canopy_openness,Site,In_out) %>%
-  summarize(
-    avg_T1 = mean(T1),
-    avg_T2 = mean(T2),
-    avg_T3 = mean(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_T1 = max(T1),
-    min_T1 = min(T1),
-    max_T2 = max(T2),
-    min_T2 = min(T2),
-    max_T3 = max(T3),
-    min_T3 = min(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_soil_moisture = max(soil_moisture),
-    min_soil_moisture = min(soil_moisture)
-  )
-
-head(daily_averages_Tmin_Tmax)
-
-
-## Aggregate the data to daytime (6am-6pm) and nightime (6pm-6am)
-time_of_day <- Data_by_Season %>%
-  mutate(time_of_day = ifelse(hour(date) >= 6 & hour(date) < 18, "daytime", "nighttime"))
-head(time_of_day)
-
-# Calculate daytime vs. nighttime averages
-daynight_averages <- time_of_day %>%
-  group_by(season,day,Canopy_openness,Site,time_of_day,In_out) %>%
-  summarize(
-    avg_T1 = mean(T1),
-    avg_T2 = mean(T2),
-    avg_T3 = mean(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_T1 = max(T1),
-    min_T1 = min(T1),
-    max_T2 = max(T2),
-    min_T2 = min(T2),
-    max_T3 = max(T3),
-    min_T3 = min(T3),
-    avg_soil_moisture = mean(soil_moisture),
-    max_soil_moisture = max(soil_moisture),
-    min_soil_moisture = min(soil_moisture)
-  )
-head(daynight_averages)
-
-daynight_averages[,c(1,2,3,4,5,6,7,8,9)]
-
-
-gathered_data2 %>%
-  filter(season == 'fall') %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Temperature_Variable, color = time_of_day)) +
-  geom_boxplot() +
-  labs(title = "Daily average fall temperature for T1, T2, and T3", x = "Site", y = "Temperature °C") +
-  scale_color_manual(values = c("daytime" = "blue", "nighttime" = "red")) +  # Adjust colors as needed
-  theme_minimal() +
-  facet_wrap(~Site) +
-  theme(text = element_text(size = 22),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)))
 
 #############################################
 ###             Data analysis
@@ -625,7 +828,7 @@ lr_test <- anova(mixed_model, linear_model)
 print(lr_test)
 summary(model)
 
-library(MuMIn)
+
 # Compute marginal and conditional R-squared for the mixed-effects model
 r_squared_marginal_full <- r.squaredGLMM(mixed_model, which = "marginal")
 r_squared_conditional_full <- r.squaredGLMM(mixed_model, which = "conditional")
