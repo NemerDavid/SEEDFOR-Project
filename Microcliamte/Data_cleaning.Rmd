@@ -3,14 +3,13 @@ title: "Data_cleaning2"
 author: "David"
 date: "2024-01-24"
 output: 
-  pdf_document:
-    toc: true
-      collapsed: false
-      smooth_scroll: true
-    toc_depth: 4
+  html_document:
+   toc: true
+  collapsed: false
+  smooth_scroll: true
+  toc_depth: 4
 
 ---
-
 
 
 ```{r, include=FALSE}
@@ -50,7 +49,7 @@ library(kableExtra)
 ###############################################
 ###  load and extract the new cleaned rds files
 ###############################################
-new_folder_path <- "C:/Users/David/Desktop/SeedFor/Data analysis/SEEDFOR/Data/TOMST_Cleaned1"
+new_folder_path <- "C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST_Cleaned1"
 #### 1-load ###
 # Get a list of all RDS files in the folder
 rds_files <- list.files(path = new_folder_path, pattern = "\\.rds$", full.names = TRUE)
@@ -107,8 +106,8 @@ unique(filtered_data$logger_id) # check if the loggers were removed
 
 # 3. Load the sensors metadata that contain the information of whether the loggers are inside or outside the cage and add that information to the main dataset
 ```{r,echo=TRUE}
-#Sensors_data <- read_excel("C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST metadata/Sensors_20230904.xlsx",  sheet = "capteurs")
-Sensors_data <-read_excel("C:/Users/David/Desktop/SeedFor/Project/SEEDFOR/Field/20230904_MonitoringC1/microclim/Sensors_20230904.xlsx", sheet = "capteurs")
+Sensors_data <- read_excel("C:/Users/nemer/Project/Data analysis Git/SEEDFOR-Project/Data/TOMST metadata/Sensors_20230904.xlsx",  sheet = "capteurs")
+#Sensors_data <-read_excel("C:/Users/David/Desktop/SeedFor/Project/SEEDFOR/Field/20230904_MonitoringC1/microclim/Sensors_20230904.xlsx", sheet = "capteurs")
 
 
 # Convert sensor_id in Sensors_data to character and add In_out column 
@@ -128,7 +127,7 @@ head(joined_data)
 
 # 4. Aggregating the data by season, daily averages, daily min and max temperatues
 
-```{r,include=FALSE}
+```{r,echo=TRUE}
 #############################
 ####       Data by Season 
 #############################
@@ -150,7 +149,7 @@ Data_by_Season  <- joined_data %>%
 
 
 daily_Tmean_Tmin_Tmax <- Data_by_Season %>%
-  group_by(season,day,Canopy_openness,Site) %>%
+  group_by(season,day,Canopy_openness,Site,In_out) %>%
   summarize(
     avg_T1 = mean(T1),
     avg_T3 = mean(T3),
@@ -178,7 +177,7 @@ head(gathered_data)
 canopy_order <- c("Open", "Semi-closed", "Closed")
 ```
 
-#### 4.1.1 Daily mean temperature measured at 8 cm below ground
+### 4.1.1 Daily mean temperature measured at 8 cm below ground
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
 gathered_data %>%
   filter(Temperature_Variable == 'avg_T1') %>%
@@ -189,16 +188,16 @@ gathered_data %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(legend.position = "none",text = element_text(size = 28),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 15))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 ```
 <div style="margin-bottom: 70px;"></div>
 
 
-#### 4.1.2 Daily maximum temperature measured at 8 cm below ground
+### 4.1.2 Daily maximum temperature measured at 8 cm below ground
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
 gathered_data %>%
   filter(Temperature_Variable == 'max_T1') %>%
@@ -209,9 +208,9 @@ gathered_data %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 
@@ -219,7 +218,7 @@ gathered_data %>%
 <div style="margin-bottom: 70px;"></div>
 
 
-####  4.1.3 Daily minimum temperature measured at 8 cm below ground
+###  4.1.3 Daily minimum temperature measured at 8 cm below ground
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
 gathered_data %>%
   filter(Temperature_Variable == 'min_T1') %>%
@@ -230,9 +229,9 @@ gathered_data %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 ```
 <div style="margin-bottom: 70px;"></div>
@@ -249,9 +248,9 @@ gathered_data %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 ```
@@ -268,9 +267,9 @@ gathered_data %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 ```
@@ -288,15 +287,15 @@ gathered_data %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 ```
 
 
 
-### 5. Aggregating the data by season, daily averages, daily min and max temperatues after removing outliers
+# 5. Aggregating the data by season, daily averages, daily min and max temperatues after removing outliers
 
 ```{r,include=FALSE}
 #############################
@@ -387,7 +386,7 @@ head(gathered_data2)
 canopy_order <- c("Open", "Semi-closed", "Closed")
 ```
 
-#### 5.1.1 Daily mean temperature measured at 8 cm below ground
+### 5.1.1 Daily mean temperature measured at 8 cm below ground
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
 gathered_data2 %>%
   filter(Temperature_Variable == 'avg_T1') %>%
@@ -398,16 +397,16 @@ gathered_data2 %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 ```
 <div style="margin-bottom: 70px;"></div>
 
 
-#### 5.1.2 Daily maximum temperature measured at 8 cm below ground
+### 5.1.2 Daily maximum temperature measured at 8 cm below ground
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
 gathered_data2 %>%
   filter(Temperature_Variable == 'max_T1') %>%
@@ -418,9 +417,9 @@ gathered_data2 %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 
@@ -428,7 +427,7 @@ gathered_data2 %>%
 <div style="margin-bottom: 70px;"></div>
 
 
-####  5.1.3 Daily minimum temperature measured at 8 cm below ground
+###  5.1.3 Daily minimum temperature measured at 8 cm below ground
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
 gathered_data2 %>%
   filter(Temperature_Variable == 'min_T1') %>%
@@ -439,9 +438,9 @@ gathered_data2 %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 ```
 <div style="margin-bottom: 70px;"></div>
@@ -458,9 +457,9 @@ gathered_data2 %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 ```
@@ -477,9 +476,9 @@ gathered_data2 %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 
 ```
@@ -497,9 +496,9 @@ gathered_data2 %>%
   scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
   #theme_minimal() +
   facet_grid(vars(season), vars(Site) , switch = "y") +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 22),
+  theme(text = element_text(size = 28),
         plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 11.5))#+
+        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))#+
 #theme(panel.border = element_rect(color = "black", fill = NA, size = 1))  # Add borders between panels
 ```
 
