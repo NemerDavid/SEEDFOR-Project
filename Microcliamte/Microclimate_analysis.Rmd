@@ -1,7 +1,7 @@
 ---
-title: "Data_cleaning2"
+title: "Microclimate Analysis"
 author: "David"
-date: "2024-01-24"
+date: "2024-02-15"
 output: 
   html_document:
     toc: true
@@ -195,7 +195,7 @@ mixed(model_avgT1, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_avgT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -232,7 +232,7 @@ mixed(model_maxT1, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_maxT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -269,7 +269,7 @@ mixed(model_minT1, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_minT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -305,7 +305,7 @@ mixed(model_avgT3, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_avgT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -342,7 +342,7 @@ mixed(model_maxT3, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_maxT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -378,7 +378,7 @@ mixed(model_minT3, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_minT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -421,7 +421,7 @@ mixed(model_avgT1, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_avgT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -458,7 +458,7 @@ mixed(model_maxT1, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_maxT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -495,7 +495,7 @@ mixed(model_minT1, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_minT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -531,7 +531,7 @@ mixed(model_avgT3, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_avgT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -568,7 +568,7 @@ mixed(model_maxT3, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_maxT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -604,7 +604,7 @@ mixed(model_minT3, data = daily_Tmean_Tmin_Tmax)
 
 # Posthoc test #
 lsmeans_interaction <- lsmeans::lsmeans(model_minT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
+
 ```
 
 ```{r, echo=FALSE,fig.width=20, fig.height=14}
@@ -615,530 +615,3 @@ p6<- p6+# Add text labels for post hoc results
 plot(p6)
 ```
 
-# 5. repeating the same analysis as before after detecting and removing outliers
-
-```{r,include=FALSE}
-
-library(outliers)
-
-grubbs.test(Data_by_Season$T3)
-grubbs.test(Data_by_Season$T1)
-
-
-
-### Here is the method in case we want to remove all the outliers above the upper fence and bellow the lower fence
-head(Data_by_Season)
-# For season and canopy openness #
-seasons <- unique(Data_by_Season$season)
-canopies <- unique(Data_by_Season$Canopy_openness)
-sites<-unique(Data_by_Season$Site)
-# Create an empty data frame to store the filtered results
-joined_data_filtered<- data.frame()
-
-# Loop through each season & canopy types
-for (season in seasons) {
-  for (canopy in canopies) {
-    for (site in sites) {
-      subset_data <- Data_by_Season[Data_by_Season$season == season & Data_by_Season$Canopy_openness == canopy & Data_by_Season$Site == site, ] 
-      
-      # Calculate IQR for each temperature variable
-      iqr_T1 <- IQR(subset_data$T1)
-      iqr_T2 <- IQR(subset_data$T2)
-      iqr_T3 <- IQR(subset_data$T3)
-      
-      # Set a threshold as 1.5 times the IQR
-      threshold_multiplier <- 1.5
-      lower_threshold_T1 <- quantile(subset_data$T1, 0.25) - threshold_multiplier * iqr_T1
-      upper_threshold_T1 <- quantile(subset_data$T1, 0.75) + threshold_multiplier * iqr_T1
-      
-      lower_threshold_T2 <- quantile(subset_data$T2, 0.25) - threshold_multiplier * iqr_T2
-      upper_threshold_T2 <- quantile(subset_data$T2, 0.75) + threshold_multiplier * iqr_T2
-      
-      lower_threshold_T3 <- quantile(subset_data$T3, 0.25) - threshold_multiplier * iqr_T3
-      upper_threshold_T3 <- quantile(subset_data$T3, 0.75) + threshold_multiplier * iqr_T3
-      
-      # Filter out values beyond the thresholds for each season
-      subset_data_filtered <- subset_data %>%
-        filter(
-          T1 >= lower_threshold_T1 & T1 <= upper_threshold_T1,
-          T2 >= lower_threshold_T2 & T2 <= upper_threshold_T2,
-          T3 >= lower_threshold_T3 & T3 <= upper_threshold_T3
-        )
-      
-      # Append the filtered results to the main data frame
-      joined_data_filtered <- rbind(joined_data_filtered, subset_data_filtered)
-    }
-  }
-}
-# Print the summary of the filtered data
-summary(Data_by_Season)
-summary(joined_data_filtered)
-head(joined_data_filtered)
-
-
-
-daily_Tmean_Tmin_Tmax2 <- joined_data_filtered %>%
-  group_by(season,day,Canopy_openness,Site,In_out) %>%
-  summarize(
-    avg_T1 = mean(T1),
-    avg_T3 = mean(T3),
-    max_T1 = max(T1),
-    min_T1 = min(T1),
-    max_T3 = max(T3),
-    min_T3 = min(T3)
-  )
-
-
-```
-
-```{r, include=FALSE}
-gathered_data2 <- tidyr::gather(daily_Tmean_Tmin_Tmax2, key = "Temperature_Variable", value = "Temperature", avg_T1, avg_T3,max_T1,max_T3,min_T1,min_T3)
-head(gathered_data2)
-
-# Specify the order of levels for Canopy_openness
-canopy_order <- c("Open", "Semi-closed", "Closed")
-```
-
-## 5.1 Winter
-
-### 5.1.1 Daily mean temperature measured at 8 cm below ground in Winter
-
-```{r, include=FALSE}
-p1<-gathered_data2 %>%
-  filter(Temperature_Variable == 'avg_T1' & season=="winter") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily mean temperature measured at 8 cm below ground in winter", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_avgT1 <- lmer(avg_T1 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="winter")))
-mixed(model_avgT1, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_avgT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p1<- p1+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 11, label = .group),
-            size = 7)
-plot(p1)
-
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.1.2 Daily maximum temperature measured at 8 cm below ground in Winter
-
-```{r, include=FALSE}
-p2<-gathered_data2 %>%
-  filter(Temperature_Variable == 'max_T1' & season=="winter") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily maximum temperature measured at 8 cm below ground in winter", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_maxT1 <- lmer(max_T1 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="winter")))
-mixed(model_maxT1, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_maxT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p2<- p2+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 15, label = .group),
-            size = 6)
-plot(p2)
-
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.1.3 Daily minimum temperature measured at 8 cm below ground in Winter
-
-```{r, include=FALSE}
-p3<-gathered_data2 %>%
-  filter(Temperature_Variable == 'min_T1' & season=="winter") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily minimum temperature measured at 8 cm below ground in winter", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_minT1 <- lmer(min_T1 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="winter")))
-mixed(model_minT1, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_minT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p3<- p3+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 11, label = .group),
-            size = 7)
-plot(p3)
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.1.4 Daily mean temperature measured at 15 cm above ground in winter
-
-```{r, include=FALSE}
-p4<-gathered_data2 %>%
-  filter(Temperature_Variable == 'avg_T3' & season=="winter") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily mean temperature measured at 15 cm above ground in winter", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_avgT3 <- lmer(avg_T3 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="winter")))
-mixed(model_avgT3, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_avgT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p4<- p4+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 11, label = .group),
-            size = 7)
-plot(p4)
-
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.1.5 Daily maximum temperature measured at 15 cm above ground in winter
-
-```{r, include=FALSE}
-p5<-gathered_data2 %>%
-  filter(Temperature_Variable == 'max_T3' & season=="winter") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily maximum temperature measured at 15 cm above ground in winter", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_maxT3 <- lmer(max_T3 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="winter")))
-mixed(model_maxT3, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_maxT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p5<- p5+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 20, label = .group),
-            size = 7)
-plot(p5)
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.1.6 Daily minimum temperature measured at 15 cm above ground in winter
-
-```{r, include=FALSE}
-p6<-gathered_data2 %>%
-  filter(Temperature_Variable == 'min_T3' & season=="winter") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily minimum temperature measured at 15 cm above ground in winter", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_minT3 <- lmer(min_T3 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="winter")))
-mixed(model_minT3, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_minT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p6<- p6+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 11, label = .group),
-            size = 7)
-plot(p6)
-```
-
-## 5.2 Summer
-
-```{r, include=FALSE}
-gathered_data2 <- tidyr::gather(daily_Tmean_Tmin_Tmax2, key = "Temperature_Variable", value = "Temperature", avg_T1, avg_T3,max_T1,max_T3,min_T1,min_T3)
-head(gathered_data2)
-
-# Specify the order of levels for Canopy_openness
-canopy_order <- c("Open", "Semi-closed", "Closed")
-```
-
-### 5.2.1 Daily mean temperature measured at 8 cm below ground in Summer
-
-```{r, include=FALSE}
-p1<-gathered_data2 %>%
-  filter(Temperature_Variable == 'avg_T1' & season=="summer") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily mean temperature measured at 8 cm below ground in summer", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_avgT1 <- lmer(avg_T1 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="summer")))
-mixed(model_avgT1, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_avgT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p1<- p1+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 30, label = .group),
-            size = 7)
-plot(p1)
-
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.2.2 Daily maximum temperature measured at 8 cm below ground in Summer
-
-```{r, include=FALSE}
-p2<-gathered_data2 %>%
-  filter(Temperature_Variable == 'max_T1' & season=="summer") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily maximum temperature measured at 8 cm below ground in summer", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_maxT1 <- lmer(max_T1 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="summer")))
-mixed(model_maxT1, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_maxT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p2<- p2+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 30, label = .group),
-            size = 7)
-plot(p2)
-
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.2.3 Daily minimum temperature measured at 8 cm below ground in Summer
-
-```{r, include=FALSE}
-p3<-gathered_data2 %>%
-  filter(Temperature_Variable == 'min_T1' & season=="summer") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily minimum temperature measured at 8 cm below ground in summer", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_minT1 <- lmer(min_T1 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="summer")))
-mixed(model_minT1, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_minT1, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p3<- p3+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 23.5, label = .group),
-            size = 7)
-plot(p3)
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.2.4 Daily mean temperature measured at 15 cm above ground in Summer
-
-```{r, include=FALSE}
-p4<-gathered_data2 %>%
-  filter(Temperature_Variable == 'avg_T3' & season=="summer") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily mean temperature measured at 15 cm above ground in summer", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_avgT3 <- lmer(avg_T3 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="summer")))
-mixed(model_avgT3, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_avgT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p4<- p4+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 34 , label = .group),
-            size = 7)
-plot(p4)
-
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.2.5 Daily maximum temperature measured at 15 cm above ground in Summer
-
-```{r, include=FALSE}
-p5<-gathered_data2 %>%
-  filter(Temperature_Variable == 'max_T3' & season=="summer") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily maximum temperature measured at 15 cm above ground in summer", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_maxT3 <- lmer(max_T3 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="summer")))
-mixed(model_maxT3, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_maxT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p5<- p5+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 45, label = .group),
-            size = 7)
-plot(p5)
-```
-
-::: {style="margin-bottom: 70px;"}
-:::
-
-### 5.2.6 Daily minimum temperature measured at 15 cm above ground in Summer
-
-```{r, include=FALSE}
-p6<-gathered_data2 %>%
-  filter(Temperature_Variable == 'min_T3' & season=="summer") %>%
-  mutate(Canopy_openness = factor(Canopy_openness, levels = canopy_order)) %>%
-  ggplot(aes(x = Canopy_openness, y = Temperature, fill = Canopy_openness)) +
-  geom_boxplot() +
-  labs(title = "Daily minimum temperature measured at 15 cm above ground in summer", x = "Canopy openness", y = "Temperature °C", fill = "Canopy openness") +
-  scale_fill_manual(values = c("blue", "green","red")) + # Adjust fill colors for time_of_day
-  #theme_minimal() +
-  facet_grid(~(Site)) +  # Facet grid by site and time_of_day, with sites on the y-axis
-  theme(text = element_text(size = 28),
-        plot.title = element_text(hjust = 0.5, margin = margin(b = 50)),
-        axis.text.x = element_text(size = 18, angle = 45, hjust = 1))
-
-# Fit a linear mixed-effects model
-anova(model_minT3 <- lmer(min_T3 ~ Canopy_openness*Site + (1|day)+ (1|In_out), data = subset(daily_Tmean_Tmin_Tmax2, season=="summer")))
-mixed(model_minT3, data = daily_Tmean_Tmin_Tmax2)
-
-# Posthoc test #
-lsmeans_interaction <- lsmeans::lsmeans(model_minT3, ~ Canopy_openness*Site)
-multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "tukey")
-```
-
-```{r, echo=FALSE,fig.width=20, fig.height=14}
-p6<- p6+# Add text labels for post hoc results
-  geom_text(data = multcomp::cld(lsmeans_interaction, Letters = letters, adjust = "sidak"),
-            aes(x = Canopy_openness, y = 25, label = .group),
-            size = 7)
-plot(p6)
-```
